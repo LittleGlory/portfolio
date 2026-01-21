@@ -59,6 +59,100 @@ const experiences = [
     }
 ];
 
+const ExperienceCard = ({ exp, index }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const [isClicked, setIsClicked] = useState(false);
+
+    // Toggle click state, but only if not hovering (to avoid double toggle on some devices)
+    // or simply allow click to override.
+    // Simpler approach: Desktop uses hover, Mobile uses click.
+    // We can track both. logic: expanded = isHovered || isClicked.
+
+    const toggleClick = () => setIsClicked(!isClicked);
+
+    return (
+        <div className={`flex flex-col md:flex-row items-center w-full ${index % 2 === 0 ? 'md:flex-row-reverse' : ''}`}>
+
+            {/* Empty Space for Grid alignment */}
+            <div className="hidden md:block flex-1" />
+
+            {/* Timeline Node / Logo */}
+            <div className={`z-10 absolute left-6 md:left-1/2 transform -translate-x-1/2 w-16 h-16 rounded-full border-4 border-white shadow-lg flex items-center justify-center overflow-hidden bg-white ${exp.color.split(' ')[2]}`}>
+                <img src={exp.logo} alt={exp.company} className="w-full h-full object-contain p-2" />
+            </div>
+
+            {/* Content Card */}
+            <div className="pl-16 md:pl-0 flex-1 w-full md:w-auto">
+                <motion.div
+                    className={`relative p-6 rounded-3xl border ${exp.color} bg-opacity-30 backdrop-blur-sm cursor-pointer hover:shadow-xl transition-shadow duration-300 md:max-w-sm ${index % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto'}`}
+                    onHoverStart={() => setIsHovered(true)}
+                    onHoverEnd={() => setIsHovered(false)}
+                    onClick={toggleClick}
+                    animate={isHovered || isClicked ? "expanded" : "collapsed"}
+                    initial="collapsed"
+                >
+                    <div className="flex items-center gap-4 mb-3">
+                        <h3 className="text-xl font-bold text-gray-900">{exp.company}</h3>
+                    </div>
+
+                    {/* Revealable Content */}
+                    <motion.div
+                        variants={{
+                            collapsed: { height: 0, opacity: 0, marginTop: 0 },
+                            expanded: { height: 'auto', opacity: 1, marginTop: 12 }
+                        }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                    >
+                        <p className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-3">
+                            {exp.role}
+                        </p>
+                        <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                            {exp.details}
+                        </p>
+
+                        {/* Items Grid */}
+                        {exp.items && exp.items.length > 0 && (
+                            <div className="grid grid-cols-3 gap-3">
+                                {exp.items.map((item, i) => {
+                                    const Content = () => (
+                                        <div className="flex flex-col items-center gap-1 group/item">
+                                            <div className="w-12 h-12 rounded-lg bg-white/70 shadow-sm flex items-center justify-center p-1.5 border border-white overflow-hidden relative" title={item.name}>
+                                                <img src={item.img} alt={item.name} className="w-full h-full object-cover rounded" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerText = item.name[0]; }} />
+                                                {item.link && (
+                                                    <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                                        <div className="w-4 h-4 bg-white/80 rounded-full flex items-center justify-center">
+                                                            <span className="text-[8px] text-red-600">▶</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <span className="text-[10px] text-gray-500 font-medium text-center leading-tight opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                                {item.name}
+                                            </span>
+                                        </div>
+                                    );
+
+                                    return item.link ? (
+                                        <a key={i} href={item.link} target="_blank" rel="noopener noreferrer" className="block" onClick={(e) => e.stopPropagation()}>
+                                            <Content />
+                                        </a>
+                                    ) : (
+                                        <div key={i}>
+                                            <Content />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </motion.div>
+
+                </motion.div>
+            </div>
+        </div>
+    );
+};
+
 const Marketing = () => {
     return (
         <section id="marketing" className="py-24 bg-white relative overflow-hidden">
@@ -82,84 +176,7 @@ const Marketing = () => {
 
                 <div className="space-y-12 relative">
                     {experiences.map((exp, index) => (
-                        <div key={exp.id} className={`flex flex-col md:flex-row items-center w-full ${index % 2 === 0 ? 'md:flex-row-reverse' : ''}`}>
-
-                            {/* Empty Space for Grid alignment */}
-                            <div className="hidden md:block flex-1" />
-
-                            {/* Timeline Node / Logo */}
-                            <div className={`z-10 absolute left-6 md:left-1/2 transform -translate-x-1/2 w-16 h-16 rounded-full border-4 border-white shadow-lg flex items-center justify-center overflow-hidden bg-white ${exp.color.split(' ')[2]}`}>
-                                <img src={exp.logo} alt={exp.company} className="w-full h-full object-contain p-2" />
-                            </div>
-
-                            {/* Content Card */}
-                            <motion.div
-                                className="pl-16 md:pl-0 flex-1 w-full md:w-auto"
-                                initial="collapsed"
-                                whileHover="expanded"
-                            >
-                                <motion.div
-                                    className={`relative p-6 rounded-3xl border ${exp.color} bg-opacity-30 backdrop-blur-sm cursor-pointer hover:shadow-xl transition-shadow duration-300 md:max-w-sm ${index % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto'}`}
-                                >
-                                    <div className="flex items-center gap-4 mb-3">
-                                        <h3 className="text-xl font-bold text-gray-900">{exp.company}</h3>
-                                    </div>
-
-                                    {/* Revealable Content */}
-                                    <motion.div
-                                        variants={{
-                                            collapsed: { height: 0, opacity: 0, marginTop: 0 },
-                                            expanded: { height: 'auto', opacity: 1, marginTop: 12 }
-                                        }}
-                                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                                        className="overflow-hidden"
-                                    >
-                                        <p className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-3">
-                                            {exp.role}
-                                        </p>
-                                        <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                                            {exp.details}
-                                        </p>
-
-                                        {/* Items Grid */}
-                                        {exp.items && exp.items.length > 0 && (
-                                            <div className="grid grid-cols-3 gap-3">
-                                                {exp.items.map((item, i) => {
-                                                    const Content = () => (
-                                                        <div className="flex flex-col items-center gap-1 group/item">
-                                                            <div className="w-12 h-12 rounded-lg bg-white/70 shadow-sm flex items-center justify-center p-1.5 border border-white overflow-hidden relative" title={item.name}>
-                                                                <img src={item.img} alt={item.name} className="w-full h-full object-cover rounded" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerText = item.name[0]; }} />
-                                                                {item.link && (
-                                                                    <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                                                        <div className="w-4 h-4 bg-white/80 rounded-full flex items-center justify-center">
-                                                                            <span className="text-[8px] text-red-600">▶</span>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            <span className="text-[10px] text-gray-500 font-medium text-center leading-tight opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                                                {item.name}
-                                                            </span>
-                                                        </div>
-                                                    );
-
-                                                    return item.link ? (
-                                                        <a key={i} href={item.link} target="_blank" rel="noopener noreferrer" className="block">
-                                                            <Content />
-                                                        </a>
-                                                    ) : (
-                                                        <div key={i}>
-                                                            <Content />
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </motion.div>
-
-                                </motion.div>
-                            </motion.div>
-                        </div>
+                        <ExperienceCard key={exp.id} exp={exp} index={index} />
                     ))}
                 </div>
 
