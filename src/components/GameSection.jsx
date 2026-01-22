@@ -53,6 +53,17 @@ const GameSection = () => {
     const GRID_COLS = MAZE_GRID[0].length;
     const GRID_ROWS = MAZE_GRID.length;
 
+    // We use a ref to track keys so the game loop always has fresh data 
+    // without needing to be a dependency of useEffect (which causes re-inits)
+    const keys = useRef({ ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false });
+
+    // D-Pad Helpers
+    const handleDPad = (direction, isPressed) => {
+        // Clear all opposities if pressed? No, standard logic handles conflicting keys.
+        // We just toggle the specific key ref.
+        keys.current[direction] = isPressed;
+    };
+
     useEffect(() => {
         if (gameState !== 'playing') return;
 
@@ -156,22 +167,21 @@ const GameSection = () => {
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
         const handleKeyDown = (e) => {
-            if (keys.hasOwnProperty(e.key)) {
+            if (keys.current.hasOwnProperty(e.key)) {
                 e.preventDefault();
-                keys[e.key] = true;
+                keys.current[e.key] = true;
             }
         };
         const handleKeyUp = (e) => {
-            if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
+            if (keys.current.hasOwnProperty(e.key)) keys.current[e.key] = false;
         };
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
 
-        // --- MOBILE TOUCH CONTROLS ---
+        // --- MOBILE TOUCH CONTROLS (SWIPE - Secondary) ---
         // Ref for Next Move (Persistent until processed)
-        const nextMove = { current: null }; // Using simple object ref since we are inside useEffect
+        const nextMove = { current: null };
         const touchStart = { x: 0, y: 0 };
 
         const handleTouchStart = (e) => {
@@ -180,21 +190,30 @@ const GameSection = () => {
         };
         const handleTouchMove = (e) => {
             if (gameState === 'playing') e.preventDefault(); // Prevent scrolling
-        };
-        const handleTouchEnd = (e) => {
-            const dx = e.changedTouches[0].clientX - touchStart.x;
-            const dy = e.changedTouches[0].clientY - touchStart.y;
 
-            if (Math.abs(dx) > Math.abs(dy)) {
-                if (Math.abs(dx) > 30) nextMove.current = dx > 0 ? 'ArrowRight' : 'ArrowLeft';
-            } else {
-                if (Math.abs(dy) > 30) nextMove.current = dy > 0 ? 'ArrowDown' : 'ArrowUp';
+            // EXPERIMENTAL: Immediate Swipe Detection
+            const x = e.touches[0].clientX;
+            const y = e.touches[0].clientY;
+            const dx = x - touchStart.x;
+            const dy = y - touchStart.y;
+
+            if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    nextMove.current = dx > 0 ? 'ArrowRight' : 'ArrowLeft';
+                } else {
+                    nextMove.current = dy > 0 ? 'ArrowDown' : 'ArrowUp';
+                }
+                // Reset touch start to allow continuous direction changes? No, better to lift finger.
             }
         };
+        /* const handleTouchEnd = (e) => {
+            // Logic moved to TouchMove for faster response, 
+            // but D-Pad is primary now.
+        }; */
 
         window.addEventListener('touchstart', handleTouchStart);
         window.addEventListener('touchmove', handleTouchMove, { passive: false });
-        window.addEventListener('touchend', handleTouchEnd);
+        // window.addEventListener('touchend', handleTouchEnd);
 
         const update = () => {
             const isWall = (c, r) => {
@@ -206,27 +225,18 @@ const GameSection = () => {
 
             // Apply Swipe Input (Last wins)
             if (nextMove.current) {
-                // Clear existing keys to prioritize swipe
-                keys.ArrowUp = false; keys.ArrowDown = false; keys.ArrowLeft = false; keys.ArrowRight = false;
-                keys[nextMove.current] = true;
-                // We keep it true until another input comes or maybe we don't clear it? 
-                // Pacman continues moving until wall. Safe to leave 'true'.
-                // We reset only if user taps another direction? 
-                // Actually 'nextMove' is just a trigger. We can clear it once applied to keys?
-                // But update runs every frame. We only need to set keys ONCE per swipe.
-                // However, 'keys' object is reset on KeyUp. Swipe doesn't have 'Up'.
-                // So we manually manage it.
-                // NOTE: To make it smooth, we don't clear nextMove.current here, 
-                // we treat it as "Last Input".
+                keys.current.ArrowUp = false; keys.current.ArrowDown = false; keys.current.ArrowLeft = false; keys.current.ArrowRight = false;
+                keys.current[nextMove.current] = true;
+                nextMove.current = null; // Consume the move immediately
             }
 
             // Player Logic
             if (!player.moving) {
                 let dx = 0, dy = 0;
-                if (keys.ArrowUp) dy = -1;
-                else if (keys.ArrowDown) dy = 1;
-                else if (keys.ArrowLeft) dx = -1;
-                else if (keys.ArrowRight) dx = 1;
+                if (keys.current.ArrowUp) dy = -1;
+                else if (keys.current.ArrowDown) dy = 1;
+                else if (keys.current.ArrowLeft) dx = -1;
+                else if (keys.current.ArrowRight) dx = 1;
 
                 if (dx !== 0 || dy !== 0) {
                     const nextC = player.col + dx;
@@ -313,22 +323,49 @@ const GameSection = () => {
             const w = canvas.width;
             const h = canvas.height;
 
-            // Tighter Viewport (GRID_ROWS + 2 padding only)
-            let ts = Math.min(w / (GRID_COLS + 2), h / (GRID_ROWS + 2));
-            ts = Math.max(ts, 24);
+            // CAMERA / TILE LOGIC
+            // Fix Tile Size to be readable on mobile (>24px) but scale up on desktop
+            let ts = Math.max(26, Math.min(w / 16, h / 10)); // Min 26px tile size
 
-            const xOff = (w - (GRID_COLS * ts)) / 2;
-            const yOff = (h - (GRID_ROWS * ts)) / 2;
+            const mapW = GRID_COLS * ts;
+            const mapH = GRID_ROWS * ts;
+
+            // Camera Logic: Center Player
+            // Actual Player Screen Position
+            const pAbsX = (player.col + player.dir.x * player.progress) * ts + ts / 2;
+            const pAbsY = (player.row + player.dir.y * player.progress) * ts + ts / 2;
+
+            // Camera Offset (Desired Center - Actual Player)
+            let camX = w / 2 - pAbsX;
+            let camY = h / 2 - pAbsY;
+
+            // Clamp Camera (Don't scroll past edges if map fits, otherwise clamp to see all)
+            // If Map < Canvas, Center coordinates.
+            if (mapW < w) camX = (w - mapW) / 2;
+            else {
+                // Bounds: Min = w - mapW (Right edge aligned), Max = 0 (Left edge aligned)
+                camX = Math.min(0, Math.max(w - mapW, camX));
+            }
+
+            if (mapH < h) camY = (h - mapH) / 2;
+            else {
+                camY = Math.min(0, Math.max(h - mapH, camY));
+            }
+
 
             ctx.fillStyle = '#FFF5F7';
             ctx.fillRect(0, 0, w, h);
+
+            // Apply Camera Transform
+            ctx.save();
+            ctx.translate(camX, camY);
 
             // Walls
             MAZE_GRID.forEach((row, r) => {
                 row.forEach((cell, c) => {
                     if (cell === 1) {
-                        const x = c * ts + xOff;
-                        const y = r * ts + yOff;
+                        const x = c * ts;
+                        const y = r * ts;
                         ctx.fillStyle = '#FBCFE8';
                         ctx.shadowColor = 'rgba(236, 72, 153, 0.2)';
                         ctx.shadowBlur = 4;
@@ -350,16 +387,18 @@ const GameSection = () => {
             dots.forEach(dot => {
                 if (dot.active) {
                     ctx.fillStyle = dot.color;
-                    const x = dot.col * ts + xOff + ts / 2;
-                    const y = dot.row * ts + yOff + ts / 2;
+                    const x = dot.col * ts + ts / 2;
+                    const y = dot.row * ts + ts / 2;
                     ctx.fillText(dot.icon, x, y);
                 }
             });
 
             // Player
-            const px = (player.col + player.dir.x * player.progress) * ts + xOff + ts / 2;
-            const py = (player.row + player.dir.y * player.progress) * ts + yOff + ts / 2;
-            const pSize = ts * 1.3; // Smaller Girl (Reduced from 1.7)
+            // We use previously calculated Absolute positions, but we are inside translated context
+            // So we need just position relative to map origin.
+            const px = (player.col + player.dir.x * player.progress) * ts + ts / 2;
+            const py = (player.row + player.dir.y * player.progress) * ts + ts / 2;
+            const pSize = ts * 1.3;
 
             if (playerImage.complete && playerImage.naturalWidth !== 0) {
                 ctx.save();
@@ -375,13 +414,15 @@ const GameSection = () => {
             // Enemies
             ctx.font = `${ts * 1.0}px Arial`;
             enemies.forEach(enemy => {
-                const ex = (enemy.col + enemy.dir.x * enemy.progress) * ts + xOff + ts / 2;
-                const ey = (enemy.row + enemy.dir.y * enemy.progress) * ts + yOff + ts / 2;
+                const ex = (enemy.col + enemy.dir.x * enemy.progress) * ts + ts / 2;
+                const ey = (enemy.row + enemy.dir.y * enemy.progress) * ts + ts / 2;
                 ctx.shadowColor = 'rgba(0,0,0,0.1)';
                 ctx.shadowBlur = 5;
                 ctx.fillText(enemy.icon, ex, ey);
                 ctx.shadowBlur = 0;
             });
+
+            ctx.restore(); // Restore camera transform
         };
 
         const render = () => {
@@ -397,7 +438,7 @@ const GameSection = () => {
             window.removeEventListener('keyup', handleKeyUp);
             window.removeEventListener('touchstart', handleTouchStart);
             window.removeEventListener('touchmove', handleTouchMove);
-            window.removeEventListener('touchend', handleTouchEnd);
+            // window.removeEventListener('touchend', handleTouchEnd);
             cancelAnimationFrame(animationFrameId);
         };
     }, [gameState, level]);
@@ -431,7 +472,7 @@ const GameSection = () => {
                     <p className="text-xl text-gray-500 mt-4 max-w-2xl mx-auto">Collect <span className="text-pink-500 font-semibold">Good Vibes</span>. Avoid the <span className="text-red-500 font-bold">Negativity</span>.</p>
                 </div>
 
-                <div className="relative w-full aspect-[4/3] md:aspect-[21/9] bg-white rounded-[3rem] shadow-[0_20px_50px_rgba(236,72,153,0.1)] overflow-hidden border border-pink-100 group">
+                <div className="relative w-full aspect-[3/4] md:aspect-[21/9] bg-white rounded-[3rem] shadow-[0_20px_50px_rgba(236,72,153,0.1)] overflow-hidden border border-pink-100 group">
                     {/* Live Stats */}
                     <div className="absolute top-4 right-6 md:top-6 md:right-8 z-20 flex gap-4">
                         <div className="hidden md:flex bg-white/90 backdrop-blur-md px-4 py-1 rounded-full shadow-sm border border-pink-100 items-center gap-2">
@@ -450,6 +491,50 @@ const GameSection = () => {
 
                     {gameState === 'playing' && (
                         <canvas ref={canvasRef} className="w-full h-full cursor-none outline-none" tabIndex={0} />
+                    )}
+
+                    {/* D-PAD Overlays - Only Visible when Playing */}
+                    {gameState === 'playing' && (
+                        <div className="absolute bottom-6 right-6 z-30 flex flex-col items-center gap-2 md:hidden">
+                            <button
+                                className="w-14 h-14 bg-white/30 backdrop-blur-md rounded-full shadow-lg border border-white flex items-center justify-center active:bg-pink-400/50 transition-colors"
+                                onTouchStart={(e) => { e.preventDefault(); handleDPad('ArrowUp', true); }}
+                                onTouchEnd={(e) => { e.preventDefault(); handleDPad('ArrowUp', false); }}
+                                onMouseDown={() => handleDPad('ArrowUp', true)}
+                                onMouseUp={() => handleDPad('ArrowUp', false)}
+                            >
+                                <span className="text-2xl font-bold text-pink-600">↑</span>
+                            </button>
+                            <div className="flex gap-4">
+                                <button
+                                    className="w-14 h-14 bg-white/30 backdrop-blur-md rounded-full shadow-lg border border-white flex items-center justify-center active:bg-pink-400/50 transition-colors"
+                                    onTouchStart={(e) => { e.preventDefault(); handleDPad('ArrowLeft', true); }}
+                                    onTouchEnd={(e) => { e.preventDefault(); handleDPad('ArrowLeft', false); }}
+                                    onMouseDown={() => handleDPad('ArrowLeft', true)}
+                                    onMouseUp={() => handleDPad('ArrowLeft', false)}
+                                >
+                                    <span className="text-2xl font-bold text-pink-600">←</span>
+                                </button>
+                                <button
+                                    className="w-14 h-14 bg-white/30 backdrop-blur-md rounded-full shadow-lg border border-white flex items-center justify-center active:bg-pink-400/50 transition-colors"
+                                    onTouchStart={(e) => { e.preventDefault(); handleDPad('ArrowDown', true); }}
+                                    onTouchEnd={(e) => { e.preventDefault(); handleDPad('ArrowDown', false); }}
+                                    onMouseDown={() => handleDPad('ArrowDown', true)}
+                                    onMouseUp={() => handleDPad('ArrowDown', false)}
+                                >
+                                    <span className="text-2xl font-bold text-pink-600">↓</span>
+                                </button>
+                                <button
+                                    className="w-14 h-14 bg-white/30 backdrop-blur-md rounded-full shadow-lg border border-white flex items-center justify-center active:bg-pink-400/50 transition-colors"
+                                    onTouchStart={(e) => { e.preventDefault(); handleDPad('ArrowRight', true); }}
+                                    onTouchEnd={(e) => { e.preventDefault(); handleDPad('ArrowRight', false); }}
+                                    onMouseDown={() => handleDPad('ArrowRight', true)}
+                                    onMouseUp={() => handleDPad('ArrowRight', false)}
+                                >
+                                    <span className="text-2xl font-bold text-pink-600">→</span>
+                                </button>
+                            </div>
+                        </div>
                     )}
 
                     <AnimatePresence>
