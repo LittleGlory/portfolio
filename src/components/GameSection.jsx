@@ -146,7 +146,8 @@ const GameSection = () => {
             { col: 23, row: 6, label: 'Anger', icon: '😡', dir: { x: -1, y: 0 }, progress: 0 }, // Bottom Right
             { col: 15, row: 1, label: 'Chaos', icon: '🌀', dir: { x: 0, y: 1 }, progress: 0 },
             { col: 5, row: 6, label: 'Doubt', icon: '😟', dir: { x: 1, y: 0 }, progress: 0 },
-            { col: 20, row: 1, label: 'Stress', icon: '😫', dir: { x: -1, y: 0 }, progress: 0 },
+
+            // { col: 20, row: 1, label: 'Stress', icon: '😫', dir: { x: -1, y: 0 }, progress: 0 }, // Reduced count
             // Extra Levels
             ...Array(level - 1).fill(0).map((_, i) => ({
                 col: i % 2 === 0 ? 2 : 23,
@@ -215,13 +216,13 @@ const GameSection = () => {
         window.addEventListener('touchmove', handleTouchMove, { passive: false });
         // window.addEventListener('touchend', handleTouchEnd);
 
-        const update = () => {
+        const update = (timeScale = 1) => {
             const isWall = (c, r) => {
                 if (c >= 0 && c < GRID_COLS && r >= 0 && r < GRID_ROWS) return MAZE_GRID[r][c] === 1;
                 return true; // Treat OOB as Wall
             };
 
-            const MOVEMENT_SPEED = 0.15 * (1 + (level - 1) * 0.1);
+            const MOVEMENT_SPEED = 0.12 * (1 + (level - 1) * 0.1) * timeScale;
 
             // Apply Swipe Input (Last wins)
             if (nextMove.current) {
@@ -325,7 +326,7 @@ const GameSection = () => {
 
             // CAMERA / TILE LOGIC
             // Fix Tile Size to be readable on mobile (>24px) but scale up on desktop
-            let ts = Math.max(26, Math.min(w / 16, h / 10)); // Min 26px tile size
+            let ts = Math.max(26, Math.min(w / GRID_COLS, h / GRID_ROWS)); // Min 26px tile size, otherwise fit to screen
 
             const mapW = GRID_COLS * ts;
             const mapH = GRID_ROWS * ts;
@@ -425,12 +426,21 @@ const GameSection = () => {
             ctx.restore(); // Restore camera transform
         };
 
-        const render = () => {
-            update();
+        let lastTime = 0;
+        const render = (time) => {
+            if (!time) time = performance.now();
+            if (!lastTime) lastTime = time;
+            const deltaTime = time - lastTime;
+            lastTime = time;
+
+            // Cap at ~20 FPS (50ms) to prevent huge jumps
+            const timeScale = Math.min(deltaTime, 50) / 16.67;
+
+            update(timeScale);
             draw();
             animationFrameId = requestAnimationFrame(render);
         };
-        render();
+        animationFrameId = requestAnimationFrame(render);
 
         return () => {
             window.removeEventListener('resize', resizeCanvas);
