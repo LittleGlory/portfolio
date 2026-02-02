@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, RotateCcw, Trophy, ArrowRight } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 
 const GameSection = () => {
     const canvasRef = useRef(null);
@@ -9,6 +10,7 @@ const GameSection = () => {
     const [playerName, setPlayerName] = useState('');
     const [tempName, setTempName] = useState('');
     const [highScore, setHighScore] = useState(0);
+    const [highScoreName, setHighScoreName] = useState('');
     const [level, setLevel] = useState(1);
     const [lostMessage, setLostMessage] = useState('');
 
@@ -24,18 +26,48 @@ const GameSection = () => {
     ];
 
     // Load High Score
+    // Load High Score
     useEffect(() => {
-        const stored = localStorage.getItem('gloryHighScore');
-        if (stored) setHighScore(parseInt(stored));
+        const fetchHighScore = async () => {
+            const { data, error } = await supabase
+                .from('game_scores')
+                .select('score, player_name')
+                .order('score', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (data) {
+                setHighScore(data.score);
+                setHighScoreName(data.player_name || '');
+            } else {
+                // Fallback to local if no global score yet (or offline)
+                const legacyScore = localStorage.getItem('gloryHighScore');
+                if (legacyScore) setHighScore(parseInt(legacyScore));
+            }
+        };
+        fetchHighScore();
     }, []);
 
+    // Save High Score
     // Save High Score
     useEffect(() => {
         if (score > highScore) {
             setHighScore(score);
-            localStorage.setItem('gloryHighScore', score);
+            if (playerName) setHighScoreName(playerName);
+
+            // Debounce or just save? For now, we save only on change to avoid spam, 
+            // but we need to ensure we don't spam API on every frame score increases.
+            // Actually, score increases by 10. Let's save.
+            const saveScore = async () => {
+                const { error } = await supabase
+                    .from('game_scores')
+                    .insert([{ player_name: playerName, score: score }]);
+
+                if (error) console.error('Error saving score:', error);
+            };
+            if (playerName) saveScore();
         }
-    }, [score, highScore]);
+    }, [score, highScore, playerName]);
 
     // GLORY Grid (1 = Wall, 0 = Path)
     // Added padding rows (Top/Bottom) AND Columns (Left/Right) for full arena movement
@@ -487,7 +519,9 @@ const GameSection = () => {
                     <div className="absolute top-4 right-6 md:top-6 md:right-8 z-20 flex gap-4">
                         <div className="hidden md:flex bg-white/90 backdrop-blur-md px-4 py-1 rounded-full shadow-sm border border-pink-100 items-center gap-2">
                             <Trophy size={16} className="text-yellow-500" />
-                            <span className="text-gray-600 font-bold">{highScore}</span>
+                            <span className="text-gray-600 font-bold">
+                                {highScore} {highScoreName && <span className="text-gray-400 font-normal text-xs ml-1">({highScoreName})</span>}
+                            </span>
                         </div>
                         <div className="bg-white/90 backdrop-blur-md px-4 py-1 rounded-full shadow-lg border border-pink-100">
                             <span className="text-pink-600 font-bold text-lg drop-shadow-sm">Score: {score}</span>
