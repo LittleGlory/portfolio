@@ -125,7 +125,7 @@ const Footer = () => (
                             <span className="text-gray-400 group-hover:text-white transition-colors font-medium">LinkedIn</span>
                         </a>
 
-                        <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group bg-white/5 pr-8 rounded-full hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10">
+                        <a href="https://www.instagram.com/the.little.glory/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group bg-white/5 pr-8 rounded-full hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10">
                             <div className="p-3 rounded-full bg-rose-500/10 text-rose-400 group-hover:bg-rose-500/20 group-hover:scale-110 transition-all duration-300">
                                 <Instagram size={20} />
                             </div>
