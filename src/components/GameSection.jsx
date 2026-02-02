@@ -67,7 +67,7 @@ const GameSection = () => {
                 if (!playerName) return;
                 const { error } = await supabase
                     .from('game_scores')
-                    .insert([{ player_name: playerName, score: score }]);
+                    .upsert([{ player_name: playerName, score: score }], { onConflict: 'player_name' });
 
                 if (error) console.error('Error saving score:', error);
             };
