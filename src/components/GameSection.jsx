@@ -11,6 +11,7 @@ const GameSection = () => {
     const [tempName, setTempName] = useState('');
     const [highScore, setHighScore] = useState(0);
     const [highScoreName, setHighScoreName] = useState('');
+    const [personalBest, setPersonalBest] = useState(0);
     const [level, setLevel] = useState(1);
     const [lostMessage, setLostMessage] = useState('');
 
@@ -50,24 +51,29 @@ const GameSection = () => {
 
     // Save High Score
     // Save High Score
+    // Save Score (Personal & Global)
     useEffect(() => {
-        if (score > highScore) {
-            setHighScore(score);
-            if (playerName) setHighScoreName(playerName);
+        // If current score beats PERSONAL BEST
+        if (score > personalBest) {
+            setPersonalBest(score);
 
-            // Debounce or just save? For now, we save only on change to avoid spam, 
-            // but we need to ensure we don't spam API on every frame score increases.
-            // Actually, score increases by 10. Let's save.
+            // Also update Global High Score if we beat that too
+            if (score > highScore) {
+                setHighScore(score);
+                if (playerName) setHighScoreName(playerName);
+            }
+
             const saveScore = async () => {
+                if (!playerName) return;
                 const { error } = await supabase
                     .from('game_scores')
                     .insert([{ player_name: playerName, score: score }]);
 
                 if (error) console.error('Error saving score:', error);
             };
-            if (playerName) saveScore();
+            saveScore();
         }
-    }, [score, highScore, playerName]);
+    }, [score, personalBest, highScore, playerName]);
 
     // GLORY Grid (1 = Wall, 0 = Path)
     // Added padding rows (Top/Bottom) AND Columns (Left/Right) for full arena movement
@@ -485,11 +491,26 @@ const GameSection = () => {
         };
     }, [gameState, level]);
 
-    const startGame = (e) => {
+    const startGame = async (e) => {
         e.preventDefault();
         if (tempName.trim()) {
             setPlayerName(tempName);
             setGameState('playing');
+
+            // Fetch Personal Best for this user
+            const { data, error } = await supabase
+                .from('game_scores')
+                .select('score')
+                .eq('player_name', tempName)
+                .order('score', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (data) {
+                setPersonalBest(data.score);
+            } else {
+                setPersonalBest(0);
+            }
         }
     };
 
@@ -519,10 +540,18 @@ const GameSection = () => {
                     <div className="absolute top-4 right-6 md:top-6 md:right-8 z-20 flex gap-4">
                         <div className="hidden md:flex bg-white/90 backdrop-blur-md px-4 py-1 rounded-full shadow-sm border border-pink-100 items-center gap-2">
                             <Trophy size={16} className="text-yellow-500" />
-                            <span className="text-gray-600 font-bold">
-                                {highScore} {highScoreName && <span className="text-gray-400 font-normal text-xs ml-1">({highScoreName})</span>}
+                            <span className="text-gray-600 font-bold text-sm">
+                                World: <span className="text-gray-900">{highScore}</span>
+                                {highScoreName && <span className="text-gray-500 font-normal ml-1">({highScoreName})</span>}
                             </span>
                         </div>
+                        {playerName && (
+                            <div className="hidden md:flex bg-white/90 backdrop-blur-md px-4 py-1 rounded-full shadow-sm border border-pink-100 items-center gap-2">
+                                <span className="text-gray-600 font-bold text-sm">
+                                    You: <span className="text-pink-600">{personalBest}</span>
+                                </span>
+                            </div>
+                        )}
                         <div className="bg-white/90 backdrop-blur-md px-4 py-1 rounded-full shadow-lg border border-pink-100">
                             <span className="text-pink-600 font-bold text-lg drop-shadow-sm">Score: {score}</span>
                         </div>
