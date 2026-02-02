@@ -91,102 +91,49 @@ const Footer = () => (
 
         <div className="max-w-7xl mx-auto px-6 relative z-10">
 
-            <div className="flex flex-col lg:grid lg:grid-cols-2 gap-12 lg:gap-24 lg:items-center">
-                {/* Left Column: Header, Info & Connect */}
-                <div className="contents lg:flex lg:flex-col lg:gap-12">
-                    {/* Header Section */}
-                    <div className="order-1">
-                        <div className="flex items-center gap-3 bg-white/5 w-fit px-4 py-1.5 rounded-full border border-white/10 mb-6">
-                            <span className="relative flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                            </span>
-                            <span className="text-sm font-medium text-green-300">Currently available for new projects</span>
-                        </div>
-                        <h2 className="text-4xl md:text-5xl font-bold leading-tight max-w-xl">
-                            Let's build something <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">remarkable.</span>
-                        </h2>
+            <div className="flex flex-col items-center text-center gap-12">
+                {/* Header Section */}
+                <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-3 bg-white/5 w-fit px-4 py-1.5 rounded-full border border-white/10 mb-6">
+                        <span className="relative flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                        </span>
+                        <span className="text-sm font-medium text-green-300">Currently available for new projects</span>
                     </div>
-
-                    {/* Info & Connect */}
-                    <div className="order-3 space-y-8">
-                        <div>
-                            <span className="text-xl font-bold tracking-tight">Saakshi Baheti</span>
-                            <p className="text-gray-400 mt-4 text-sm leading-relaxed max-w-xs">
-                                Turning complex ideas into impact.
-                            </p>
-                            <div className="mt-6 text-gray-500 font-medium text-sm">
-                                Kathmandu, Nepal 🇳🇵
-                            </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-3">
-                            <a href="mailto:rtrsaakshi@gmail.com" className="flex items-center gap-4 group bg-white/5 pr-8 rounded-full hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10">
-                                <div className="p-3 rounded-full bg-pink-500/10 text-pink-400 group-hover:bg-pink-500/20 group-hover:scale-110 transition-all duration-300">
-                                    <Mail size={20} />
-                                </div>
-                                <span className="text-gray-400 group-hover:text-white transition-colors font-medium">Mail</span>
-                            </a>
-
-                            <a href="https://www.linkedin.com/in/saakshi-baheti/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group bg-white/5 pr-8 rounded-full hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10">
-                                <div className="p-3 rounded-full bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 group-hover:scale-110 transition-all duration-300">
-                                    <Linkedin size={20} />
-                                </div>
-                                <span className="text-gray-400 group-hover:text-white transition-colors font-medium">LinkedIn</span>
-                            </a>
-                        </div>
-                    </div>
+                    <h2 className="text-4xl md:text-5xl font-bold leading-tight max-w-2xl">
+                        Let's build something <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">remarkable.</span>
+                    </h2>
                 </div>
 
-                {/* Right Column: Contact Form */}
-                <div className="order-2 bg-white/5 rounded-3xl p-6 md:p-8 border border-white/10 backdrop-blur-sm">
-                    <h3 className="text-2xl font-bold mb-6">Send a Message</h3>
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            const formData = new FormData(e.target);
-                            const subject = formData.get('subject');
-                            const body = `Name: ${formData.get('name')}\nEmail: ${formData.get('email')}\n\nMessage:\n${formData.get('message')}`;
-                            window.location.href = `mailto:rtrsaakshi@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                        }}
-                        className="space-y-4"
-                    >
-                        <input
-                            type="text"
-                            name="name"
-                            placeholder="Your Name"
-                            required
-                            className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500/50 transition-colors"
-                        />
-                        <input
-                            type="email"
-                            name="email"
-                            placeholder="Your Email"
-                            required
-                            className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500/50 transition-colors"
-                        />
-                        <input
-                            type="text"
-                            name="subject"
-                            placeholder="Subject"
-                            required
-                            className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500/50 transition-colors"
-                        />
-                        <textarea
-                            name="message"
-                            placeholder="Your Message"
-                            rows="4"
-                            required
-                            className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500/50 transition-colors resize-none"
-                        ></textarea>
+                {/* Info & Connect */}
+                {/* Connect & Info */}
+                <div className="space-y-12 flex flex-col items-center w-full">
+                    {/* Social Links */}
+                    <div className="flex flex-wrap justify-center gap-3">
+                        <a href="mailto:rtrsaakshi@gmail.com" className="flex items-center gap-4 group bg-white/5 pr-8 rounded-full hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10">
+                            <div className="p-3 rounded-full bg-pink-500/10 text-pink-400 group-hover:bg-pink-500/20 group-hover:scale-110 transition-all duration-300">
+                                <Mail size={20} />
+                            </div>
+                            <span className="text-gray-400 group-hover:text-white transition-colors font-medium">Mail</span>
+                        </a>
 
-                        <button
-                            type="submit"
-                            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-4 rounded-xl hover:opacity-90 hover:scale-[1.02] transition-all duration-300 shadow-lg shadow-pink-500/20"
-                        >
-                            Send Message
-                        </button>
-                    </form>
+                        <a href="https://www.linkedin.com/in/saakshi-baheti/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group bg-white/5 pr-8 rounded-full hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10">
+                            <div className="p-3 rounded-full bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 group-hover:scale-110 transition-all duration-300">
+                                <Linkedin size={20} />
+                            </div>
+                            <span className="text-gray-400 group-hover:text-white transition-colors font-medium">LinkedIn</span>
+                        </a>
+
+                        <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group bg-white/5 pr-8 rounded-full hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10">
+                            <div className="p-3 rounded-full bg-rose-500/10 text-rose-400 group-hover:bg-rose-500/20 group-hover:scale-110 transition-all duration-300">
+                                <Instagram size={20} />
+                            </div>
+                            <span className="text-gray-400 group-hover:text-white transition-colors font-medium">Instagram</span>
+                        </a>
+                    </div>
+
+                    {/* Info */}
                 </div>
             </div>
 
