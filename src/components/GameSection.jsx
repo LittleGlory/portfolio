@@ -109,6 +109,9 @@ const GameSection = () => {
         const ctx = canvas.getContext('2d');
         let animationFrameId;
 
+        // RESET KEYS ON START (Fixes "stuck keys" bug)
+        keys.current = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+
         // Assets
         const playerImage = new Image();
         playerImage.src = '/avatar.png';
@@ -184,8 +187,7 @@ const GameSection = () => {
             { col: 23, row: 6, label: 'Anger', icon: '😡', dir: { x: -1, y: 0 }, progress: 0 }, // Bottom Right
             { col: 15, row: 1, label: 'Chaos', icon: '🌀', dir: { x: 0, y: 1 }, progress: 0 },
             { col: 5, row: 6, label: 'Doubt', icon: '😟', dir: { x: 1, y: 0 }, progress: 0 },
-
-            // { col: 20, row: 1, label: 'Stress', icon: '😫', dir: { x: -1, y: 0 }, progress: 0 }, // Reduced count
+            { col: 20, row: 1, label: 'Stress', icon: '😫', dir: { x: -1, y: 0 }, progress: 0 },
             // Extra Levels
             ...Array(level - 1).fill(0).map((_, i) => ({
                 col: i % 2 === 0 ? 2 : 23,
@@ -206,17 +208,39 @@ const GameSection = () => {
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
+        // KEYBOARD HANDLERS with WASD mapping
         const handleKeyDown = (e) => {
-            if (keys.current.hasOwnProperty(e.key)) {
+            let key = e.key;
+            // Map WASD to Arrows
+            if (key === 'w' || key === 'W') key = 'ArrowUp';
+            if (key === 'a' || key === 'A') key = 'ArrowLeft';
+            if (key === 's' || key === 'S') key = 'ArrowDown';
+            if (key === 'd' || key === 'D') key = 'ArrowRight';
+
+            if (keys.current.hasOwnProperty(key)) {
                 e.preventDefault();
-                keys.current[e.key] = true;
+                keys.current[key] = true;
             }
         };
         const handleKeyUp = (e) => {
-            if (keys.current.hasOwnProperty(e.key)) keys.current[e.key] = false;
+            let key = e.key;
+            // Map WASD to Arrows
+            if (key === 'w' || key === 'W') key = 'ArrowUp';
+            if (key === 'a' || key === 'A') key = 'ArrowLeft';
+            if (key === 's' || key === 'S') key = 'ArrowDown';
+            if (key === 'd' || key === 'D') key = 'ArrowRight';
+
+            if (keys.current.hasOwnProperty(key)) keys.current[key] = false;
         };
+
+        // BLUR HANDLER (Reset keys if tab/window loses focus)
+        const handleBlur = () => {
+            keys.current = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+        };
+
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
+        window.addEventListener('blur', handleBlur);
 
         // --- MOBILE TOUCH CONTROLS (SWIPE - Secondary) ---
         // Ref for Next Move (Persistent until processed)
@@ -484,6 +508,7 @@ const GameSection = () => {
             window.removeEventListener('resize', resizeCanvas);
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
+            window.removeEventListener('blur', handleBlur);
             window.removeEventListener('touchstart', handleTouchStart);
             window.removeEventListener('touchmove', handleTouchMove);
             // window.removeEventListener('touchend', handleTouchEnd);
