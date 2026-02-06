@@ -33,6 +33,7 @@ const BlogPost = () => {
                 title={blog.title}
                 description={blog.excerpt}
                 type="article"
+                path={`/blogs/${id}`}
             />
             {/* Progress Bar (Optional) */}
             <motion.div

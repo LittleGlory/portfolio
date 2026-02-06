@@ -11,6 +11,7 @@ const Blogs = () => {
             <SEO
                 title="Blogs"
                 description="Marketing Thoughts: Exploring strategies, stories, and the science of connection."
+                path="/blogs"
             />
             <div className="max-w-4xl mx-auto px-6">
 

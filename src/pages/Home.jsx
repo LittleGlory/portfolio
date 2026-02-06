@@ -16,6 +16,7 @@ const Home = () => {
             <SEO
                 title="Home"
                 description="Portfolio of Saakshi Baheti - Creative Content Writer & Frontend Developer."
+                path="/"
             />
             <Hero />
             <GameSection />

@@ -22,6 +22,7 @@ const Initiatives = () => {
             <SEO
                 title="Initiatives"
                 description="Showcase of executed initiatives and future concepts for sustainable change."
+                path="/initiatives"
             />
             <div className="max-w-7xl mx-auto px-6">
 
